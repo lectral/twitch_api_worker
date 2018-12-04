@@ -8,7 +8,7 @@ fi
 
 echo "using ${python_command} as python command"
 
-while ${python_command} -m twitch-api-worker; do 
+while ${python_command} -m twitch_api_worker; do 
   sleep 600 
   echo "Waiting 10 minutes..."
 done

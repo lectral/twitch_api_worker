@@ -49,7 +49,7 @@ class WorkerDb:
         port = os.environ.get("TWITCH_WORKER_DB_PORT", None)
         uri = 'mysql://{}:{}@{}:{}/{}'.format(user,
                                               passwd, host, port, database)
-        uri = 'sqlite:/home/lectral/db3.sqlite'
+        # uri = 'sqlite:/home/lectral/db3.sqlite'
         sqlhub.processConnection = connectionForURI(uri)
         self.already_cached = []
         self.already_stored = []

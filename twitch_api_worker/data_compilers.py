@@ -34,13 +34,13 @@ class StreamDataCompiler:
         self.game_ids.append(data.game_id)
         if data.game_id in self.__data:
             self.__data[data.game_id].add_stream(
-                data.user_id, data.viewer_count)
+                data.user_id, data.user_name, data.viewer_count)
         else:
             self.__data[data.game_id] = self.__stream_data(data)
 
     def __stream_data(self, new_data):
         stream = GameDataResult(new_data.game_id)
-        stream.add_stream(new_data.user_id, new_data.viewer_count)
+        stream.add_stream(new_data.user_id, new_data.user_name,new_data.viewer_count)
         return stream
 
 
@@ -70,14 +70,15 @@ class GameDataResult:
                 percent = (stream['viewer_count'] / self.viewer_count) * 100
             except ZeroDivisionError:
                 percent = 0
-            dist += "{}|".format(round(percent, 2))
+            dist += "{}[{}]|".format(stream['name'],round(percent, 2))
         return dist[:-1]
 
-    def add_stream(self, uid, viewer_count):
+    def add_stream(self, uid, name, viewer_count):
         self.viewer_count += viewer_count
 
         self.streamers.append({
             "streamer": uid,
+            "name" : name,
             "viewer_count": viewer_count
         })
 
