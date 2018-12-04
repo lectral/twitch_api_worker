@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 
-setup(name='twitch_api_worker',
+setup(name='twitch-api-worker',
         version='1.0',
         description='Collects stats about polish streams',
         author='Patryk Mirecki',

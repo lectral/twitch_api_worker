@@ -1,8 +1,9 @@
 """ Twitch Api Handler """
-import requests
 import os
-from requests.exceptions import HTTPError
 import logging
+import requests
+
+from requests.exceptions import HTTPError
 
 
 class TwitchStreamsBrowser:
@@ -36,12 +37,8 @@ class TwitchStreamsBrowser:
             return results
         raise StopIteration
 
-    """ Returns number of requests made """
-    def requests_made():
-        return self.requests_made
-
     def __next_results(self):
-        resonse_body = {}
+        response_body = {}
         try:
             response_body = self.__make_request()
         except HTTPError as exception:
@@ -58,7 +55,8 @@ class TwitchStreamsBrowser:
         self.iterator = response_body['pagination']['cursor']
         return response_body['data']
 
-    def __payload_has_no_data(self, body):
+    @staticmethod
+    def __payload_has_no_data(body):
         if not body['data']:
             logging.info(
                 "  -> This payload contained no data. Crawling complated.")
@@ -71,9 +69,24 @@ class TwitchStreamsBrowser:
         if request.status_code == requests.codes.ok:
             return request.json()
         request.raise_for_status()
+        return None
 
     def __url(self):
         if self.iterator:
             return "{}&language={}&after={}".format(
                 self.URL, self.language, self.iterator)
         return "{}&language={}".format(self.URL, self.language)
+
+
+class TwitchGamesApi:
+    URL = "https://api.twitch.tv/helix/games?id="
+    HEADERS = {
+        'Client-ID': os.environ.get('TWITCH_API_CLIENT_ID', None)
+    }
+
+    @staticmethod
+    def get(query_string):
+        url = TwitchGamesApi.URL + query_string
+        logging.info("GET {}".format(url))
+        request = requests.get(url, headers=TwitchGamesApi.HEADERS)
+        return request.json()
