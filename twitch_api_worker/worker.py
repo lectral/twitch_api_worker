@@ -78,10 +78,8 @@ class AggregateDataWorker(Worker):
     Args:
         db(WorkerDb) : instance of the WorkerDb
 
-    This adjustment is neccessery if twitch api had slowdown.
     If last results are older then that it will zero the games stats table
     """
-    WORKER_ADJUSTMENT = 5  # minutes
 
     def __init__(self, db):
         super().__init__("AggregateData")
@@ -89,7 +87,7 @@ class AggregateDataWorker(Worker):
 
     def work(self):
         """ Begin work. All Workers should have this method """
-        number_of_samples = 50 
+        number_of_samples = 12 
         graphs = {}
         for i in range(0,number_of_samples):
             sample = self.db.return_range(i,0)
@@ -129,23 +127,3 @@ class AggregateDataWorker(Worker):
                 data=stream,
                 )
     
-    def retrive_ago(self, minutes):
-        """ Retrives data that where stored #minutes ago """
-        ago = self.minutes_ago(minutes)
-        to = ago + datetime.timedelta(minutes=self.WORKER_ADJUSTMENT)
-        return self.db.retrive_by_time(ago, to)
-    
-    @staticmethod
-    def now():
-        """ Return now() time """
-        return datetime.datetime.now()
-
-    def minutes_ago(self, minutes):
-        """ Calculate what time was #minutes ago
-        Args:
-            minutes (int) : minutes ago
-
-        Returns:
-           datatime: datatime object with time #minutes ago
-        """
-        return self.now() - datetime.timedelta(minutes=minutes)
