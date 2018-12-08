@@ -2,6 +2,7 @@
 import time
 import logging
 import datetime
+import json
 from twitch_api_worker.twitch import TwitchGamesApi
 from twitch_api_worker.data_compilers import StreamDataCompiler, \
     GameDataResultAdapter, TwitchStreamResultAdapter
@@ -32,6 +33,7 @@ class CrawlerWorker(Worker):
     def work(self):
         """ Begin work. All Workers should have this method """
         self.db.create_tables()
+        self.db.begin_sample()
         for result in self.api:
             time.sleep(1)  # delay to make sure we don't trigger twitch ddos
             for stream in result:
@@ -40,6 +42,7 @@ class CrawlerWorker(Worker):
         if self.api.failed:
             logging.error("Twitch api failed")
             self.failed = True
+        self.db.complete_sample()
 
 
 class GamesCacheWorker(Worker):
@@ -86,29 +89,46 @@ class AggregateDataWorker(Worker):
 
     def work(self):
         """ Begin work. All Workers should have this method """
-        now = self.retrive_ago(self.WORKER_ADJUSTMENT)
-        min_10 = self.retrive_ago(10 + self.WORKER_ADJUSTMENT)
-        min_60 = self.retrive_ago(60 + self.WORKER_ADJUSTMENT)
-        c_now = StreamDataCompiler()
-        c_10 = StreamDataCompiler()
-        c_60 = StreamDataCompiler()
-        for stream in now:
-            c_now.parse_data_unit(stream)
-        for stream in min_10:
-            c_10.parse_data_unit(stream)
-        for stream in min_60:
-            c_60.parse_data_unit(stream)
+        number_of_samples = 50 
+        graphs = {}
+        for i in range(0,number_of_samples):
+            sample = self.db.return_range(i,0)
+            if sample == []:
+                break;
+            sample_from = sample[0]
+            sample_to = sample[1]
+            logging.info("Sample [{}] : {} to {}".format(i,sample_from, sample_to))
+            data = self.db.retrive_by_time(sample_from, sample_to)
+            compiler = StreamDataCompiler()
+            for stream in data:
+                compiler.parse_data_unit(stream)
+            
+            for game_id, stream in compiler.data().items():
+                if not game_id:
+                    continue
 
-        for game_id, stream in c_now.data().items():
-            self.db.mark_for_cache(game_id)
-            self.db.create_or_update_game(
+                if not game_id in graphs:
+                    graphs[game_id] = {} 
+                    graphs[game_id]['game_id'] = stream.game_id
+                    graphs[game_id]['viewer_count'] = stream.viewer_count
+                    graphs[game_id]['streams_count'] = stream.stream_count
+                    graphs[game_id]['distribution'] = stream.distribution()
+                    graphs[game_id]['graphs'] = []
+                graphs[game_id]['graphs'].append( { 
+                            "date" : str(sample_to),
+                            "interval" : 10,
+                            "viewer_count" : stream.viewer_count,
+                            "streams_count" : stream.stream_count
+                            }
+                        )
+
+        for game_id, stream in graphs.items():
+             self.db.mark_for_cache(game_id)
+             self.db.create_or_update_game(
                 game_id=game_id,
-                data=GameDataResultAdapter.adapt(
-                    stream,
-                    c_10.get(game_id),
-                    c_60.get(game_id)
-                ))
-
+                data=stream,
+                )
+    
     def retrive_ago(self, minutes):
         """ Retrives data that where stored #minutes ago """
         ago = self.minutes_ago(minutes)

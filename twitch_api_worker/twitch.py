@@ -79,7 +79,7 @@ class TwitchStreamsBrowser:
 
 
 class TwitchGamesApi:
-    URL = "https://api.twitch.tv/helix/games?id="
+    URL = "https://api.twitch.tv/helix/games"
     HEADERS = {
         'Client-ID': os.environ.get('TWITCH_API_CLIENT_ID', None)
     }

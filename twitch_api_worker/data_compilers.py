@@ -100,14 +100,12 @@ class TwitchStreamResultAdapter:
 class GameDataResultAdapter:
     """ Convert data produced by DataCompiler to database format"""
     @staticmethod
-    def adapt(now, m10, m60):
+    def adapt(now):
         return {
-            'game_id': now.game_id,
-            'viewer_count': now.viewer_count,
+            'game_id': now['game_id'],
+            'stream_sample_id' : now['stream_sample_id'],
+            'viewer_count': now['viewer_count'],
             'streams_count': now.stream_count,
-            'viewers_10_min_ago': m10.viewer_count,
-            'viewers_60_min_ago': m60.viewer_count,
-            'streams_10_min_ago': m10.stream_count,
-            'streams_60_min_ago': m60.stream_count,
-            'distribution': now.distribution()
+            'graphs' : now.graphs,
+            'distribution' : now.distribution()
         }

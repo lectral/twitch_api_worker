@@ -1,6 +1,6 @@
 import os
 import datetime
-from sqlobject import StringCol, BLOBCol, TimestampCol, IntCol, SQLObject, ForeignKey, sqlhub, connectionForURI
+from sqlobject import StringCol, BLOBCol, TimestampCol, IntCol, SQLObject, ForeignKey, sqlhub, connectionForURI, DateTimeCol, JSONCol
 from sqlobject.sqlbuilder import AND
 import logging
 
@@ -20,18 +20,17 @@ class GamesCache(SQLObject):
     game_id = StringCol(alternateID=True, unique=True, length=15)
     title = StringCol(default=None)
 
+class StreamSamples(SQLObject):
+    started = DateTimeCol(default=None)
+    completed = DateTimeCol(default=None)
 
 class Games(SQLObject):
     game_id = StringCol(alternateID=True, length=15)
     viewer_count = IntCol()
     streams_count = IntCol()
-    viewers_10_min_ago = IntCol(default=None)
-    viewers_60_min_ago = IntCol(default=None)
-    streams_10_min_ago = IntCol(default=None)
-    streams_60_min_ago = IntCol(default=None)
     distribution = StringCol()
+    graphs = JSONCol()
     updated_on = TimestampCol()
-
 
 class WorkerDb:
     """ Handles data storage and retrival """
@@ -53,6 +52,7 @@ class WorkerDb:
         sqlhub.processConnection = connectionForURI(uri)
         self.already_cached = []
         self.already_stored = []
+        self.last_started_sample = None
 
     def insert_stream(self, data):
         """ Stores dictionary in the database """
@@ -64,12 +64,31 @@ class WorkerDb:
         data_to_store['user_name'] = data_to_store['user_name']
         Stream(**data_to_store)
 
+    def begin_sample(self):
+        ssample = StreamSamples(started=datetime.datetime.now())
+        self.last_started_sample = ssample.id
+
+    def complete_sample(self):
+        ssample = StreamSamples.get(self.last_started_sample)
+        ssample.completed = datetime.datetime.now() 
+
     def retrive_by_time(self, date_from, date_to):
         streams = Stream.select(
             AND(Stream.q.created_on >= date_from,
                 Stream.q.created_on <= date_to
                 ))
         return list(streams)
+    
+    def return_range(self, ago, rng):
+        ls = list(StreamSamples.select().limit(100).orderBy("-completed"))
+        try:
+            sample_to = ls[ago]
+        except IndexError:
+            return []
+        sample_from = ls[ago+rng]
+        end = ls[ago].completed
+        begin = ls[ago+rng].started
+        return [begin, end, sample_from.id, sample_to.id]
 
     def create_or_update_game(self, game_id, data):
         games = Games.select(Games.q.game_id == game_id)
@@ -105,11 +124,14 @@ class WorkerDb:
             logging.debug("{} - title cached.".format(game_id))
 
     def get_games_cache(self):
-        return list(GamesCache.select(GamesCache.q.title == None))
+        query = GamesCache.select(GamesCache.q.title == None)
+        print(query)
+        return list(query)
 
     @staticmethod
     def create_tables():
         """ Creates tables if they do not exist """
         Stream.createTable(ifNotExists=True)
+        StreamSamples.createTable(ifNotExists=True)
         GamesCache.createTable(ifNotExists=True)
         Games.createTable(ifNotExists=True)
