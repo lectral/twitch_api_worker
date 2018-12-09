@@ -90,10 +90,14 @@ class AggregateDataWorker(Worker):
         """ Begin work. All Workers should have this method """
         number_of_samples = 12 
         graphs = {}
+        current_games = []
         for i in range(0,number_of_samples):
             sample = self.db.return_range(i,0)
             if sample == []:
                 break;
+            if( i == 0):
+                latest_sample_id = sample[3]
+            sample_id = sample[3]
             sample_from = sample[0]
             sample_to = sample[1]
             logging.info("Sample [{}] : {} to {}".format(i,sample_from, sample_to))
@@ -108,9 +112,11 @@ class AggregateDataWorker(Worker):
 
                 if not game_id in graphs:
                     graphs[game_id] = {} 
+                    current_games.append('game_id')
                     graphs[game_id]['game_id'] = stream.game_id
                     graphs[game_id]['viewer_count'] = stream.viewer_count
                     graphs[game_id]['streams_count'] = stream.stream_count
+                    graphs[game_id]['stream_sample_id'] = sample_id 
                     graphs[game_id]['distribution'] = stream.distribution()
                     graphs[game_id]['graphs'] = []
                 graphs[game_id]['graphs'].append( { 
@@ -120,11 +126,10 @@ class AggregateDataWorker(Worker):
                             "streams_count" : stream.stream_count
                             }
                         )
-
         for game_id, stream in graphs.items():
              self.db.mark_for_cache(game_id)
              self.db.create_or_update_game(
                 game_id=game_id,
                 data=stream,
                 )
-    
+        self.db.clean_no_longer_streamed_games(latest_sample_id) 

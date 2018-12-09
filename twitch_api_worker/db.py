@@ -28,6 +28,7 @@ class Games(SQLObject):
     game_id = StringCol(alternateID=True, length=15)
     viewer_count = IntCol()
     streams_count = IntCol()
+    stream_sample_id = IntCol()
     distribution = StringCol()
     graphs = JSONCol()
     updated_on = TimestampCol()
@@ -52,7 +53,6 @@ class WorkerDb:
         # uri = 'sqlite:/home/lectral/db3.sqlite'
         MySQLConnection = mysql.builder()
         sqlhub.processConnection = MySQLConnection(host=host,user=user,db=database, port=int(port),password=passwd, charset='utf8')
-        print(sqlhub.processConnection)
         self.already_cached = []
         self.already_stored = []
         self.last_started_sample = None
@@ -80,6 +80,15 @@ class WorkerDb:
             logging.info("Cleaning invalid sample {}".format(sample.id))
             sample.destroySelf();
 
+    def clean_no_longer_streamed_games(self, sample_id):
+        invalid_games = Games.select(Games.q.stream_sample_id != sample_id)
+        logging.info("Cleaning no longer streamed games: {} entries".format(invalid_games.count()))
+        for game in invalid_games:
+            game.viewer_count = 0
+            game.streams_count = 0
+            game.graphs = {} 
+            game.distribution = ""
+            game.updated_on = datetime.datetime.now()
 
     def complete_sample(self):
         ssample = StreamSamples.get(self.last_started_sample)
@@ -138,7 +147,6 @@ class WorkerDb:
 
     def get_games_cache(self):
         query = GamesCache.select(GamesCache.q.title == None)
-        print(query)
         return list(query)
 
     @staticmethod
