@@ -1,8 +1,8 @@
+import logging
 import os
 import datetime
-from sqlobject import StringCol, BLOBCol, TimestampCol, IntCol, SQLObject, ForeignKey, sqlhub, connectionForURI, DateTimeCol, JSONCol
+from sqlobject import StringCol, BLOBCol, TimestampCol, IntCol, SQLObject, ForeignKey, sqlhub, connectionForURI, DateTimeCol, JSONCol, mysql, dberrors
 from sqlobject.sqlbuilder import AND
-import logging
 
 
 class Stream(SQLObject):
@@ -48,8 +48,11 @@ class WorkerDb:
         port = os.environ.get("TWITCH_WORKER_DB_PORT", None)
         uri = 'mysql://{}:{}@{}:{}/{}'.format(user,
                                               passwd, host, port, database)
+
         # uri = 'sqlite:/home/lectral/db3.sqlite'
-        sqlhub.processConnection = connectionForURI(uri)
+        MySQLConnection = mysql.builder()
+        sqlhub.processConnection = MySQLConnection(host=host,user=user,db=database, port=int(port),password=passwd, charset='utf8')
+        print(sqlhub.processConnection)
         self.already_cached = []
         self.already_stored = []
         self.last_started_sample = None
@@ -61,12 +64,22 @@ class WorkerDb:
         data_to_store = data
         self.already_stored.append(data['stream_id'])
         data_to_store['created_on'] = datetime.datetime.now()
-        data_to_store['user_name'] = data_to_store['user_name']
-        Stream(**data_to_store)
+        data_to_store['user_name'] = str(data_to_store['user_name'])
+        try:
+            Stream(**data_to_store)
+        except dberrors.OperationalError:
+            logging.warning("Failed to insert into db: {}".format(data_to_store)) 
 
     def begin_sample(self):
         ssample = StreamSamples(started=datetime.datetime.now())
         self.last_started_sample = ssample.id
+
+    def clean_invalid_samples(self):
+        invalid_samples = StreamSamples.select(StreamSamples.q.completed == None)
+        for sample in invalid_samples:
+            logging.info("Cleaning invalid sample {}".format(sample.id))
+            sample.destroySelf();
+
 
     def complete_sample(self):
         ssample = StreamSamples.get(self.last_started_sample)

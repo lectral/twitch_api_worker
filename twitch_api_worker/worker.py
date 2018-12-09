@@ -33,6 +33,7 @@ class CrawlerWorker(Worker):
     def work(self):
         """ Begin work. All Workers should have this method """
         self.db.create_tables()
+        self.db.clean_invalid_samples()
         self.db.begin_sample()
         for result in self.api:
             time.sleep(1)  # delay to make sure we don't trigger twitch ddos
@@ -113,7 +114,7 @@ class AggregateDataWorker(Worker):
                     graphs[game_id]['distribution'] = stream.distribution()
                     graphs[game_id]['graphs'] = []
                 graphs[game_id]['graphs'].append( { 
-                            "date" : str(sample_to),
+                            "date" : sample_to.strftime("%Y-%m-%d %H:%M:%S %z"),
                             "interval" : 10,
                             "viewer_count" : stream.viewer_count,
                             "streams_count" : stream.stream_count
