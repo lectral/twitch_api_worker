@@ -2,7 +2,7 @@ import logging
 import os
 import datetime
 from sqlobject import StringCol, BLOBCol, TimestampCol, IntCol, SQLObject, ForeignKey, sqlhub, connectionForURI, DateTimeCol, JSONCol, mysql, dberrors
-from sqlobject.sqlbuilder import AND
+from sqlobject.sqlbuilder import AND, OR
 
 
 class Stream(SQLObject):
@@ -81,7 +81,7 @@ class WorkerDb:
             sample.destroySelf();
 
     def clean_no_longer_streamed_games(self, sample_id):
-        invalid_games = Games.select(Games.q.stream_sample_id != sample_id)
+        invalid_games = Games.select(OR(Games.q.stream_sample_id != sample_id, Games.q.stream_sample_id == None) )
         logging.info("Cleaning no longer streamed games: {} entries".format(invalid_games.count()))
         for game in invalid_games:
             game.viewer_count = 0
