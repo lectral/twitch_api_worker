@@ -139,9 +139,12 @@ class WorkerDb:
     def update_game_cache(self, game_id, title):
         gamescache = GamesCache.select(GamesCache.q.game_id == game_id)
         if(gamescache.count() != 0):
-            gamescache[0].set(
-                title=title
-            )
+            try:
+                gamescache[0].set(
+                    title=title
+                 )
+            except: 
+                logging.warning("{} - could not be cached".format(game_id))
             self.already_cached.append(game_id)
             logging.debug("{} - title cached.".format(game_id))
 
