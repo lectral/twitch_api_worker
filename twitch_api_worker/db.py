@@ -86,7 +86,7 @@ class WorkerDb:
         for game in invalid_games:
             game.viewer_count = 0
             game.streams_count = 0
-            game.graphs = {} 
+            game.graphs = [] 
             game.distribution = ""
             game.updated_on = datetime.datetime.now()
 
