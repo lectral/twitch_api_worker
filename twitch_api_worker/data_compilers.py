@@ -5,7 +5,6 @@ import logging
 class StreamDataCompiler:
     """ Proccess data for each stream and returns array of GameDataResults 
     which hold stream stats connected to #game_id
-    
     """
     def __init__(self):
         self.__data = {}

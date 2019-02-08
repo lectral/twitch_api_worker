@@ -25,12 +25,22 @@ class StreamSamples(SQLObject):
     completed = DateTimeCol(default=None)
 
 class Games(SQLObject):
+    """ Caches data about currently streamed games """
     game_id = StringCol(alternateID=True, length=15)
     viewer_count = IntCol()
     streams_count = IntCol()
     stream_sample_id = IntCol()
     distribution = StringCol()
     graphs = JSONCol()
+    updated_on = TimestampCol()
+
+class Streamers(SQLObject):
+    """ Caches data abotu streamers """
+    user_id = StringCol(alternateID=True, length=15)
+    user_name = StringCol()
+    games = JSONCol() 
+    top_viewed_streams = JSONCol()
+    weekdays = JSONCol() 
     updated_on = TimestampCol()
 
 class WorkerDb:
@@ -159,3 +169,4 @@ class WorkerDb:
         StreamSamples.createTable(ifNotExists=True)
         GamesCache.createTable(ifNotExists=True)
         Games.createTable(ifNotExists=True)
+        Streamers.createTable(ifNotExists=True)
