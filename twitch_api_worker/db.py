@@ -61,9 +61,7 @@ class WorkerDb:
                                               passwd, host, port, database)
         
         
-        logging.info("Aaaa:{}".format(uri))
-        exit()
-
+        logging.info("Database URI:{}".format(uri))
         # uri = 'sqlite:/home/lectral/db3.sqlite'
         MySQLConnection = mysql.builder()
         sqlhub.processConnection = MySQLConnection(host=host,user=user,db=database, port=int(port),password=passwd, charset='utf8')
