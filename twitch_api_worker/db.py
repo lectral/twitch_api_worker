@@ -61,7 +61,8 @@ class WorkerDb:
                                               passwd, host, port, database)
         
         
-        logging.info("Aaaa:"+uri)
+        logging.info("Aaaa:{}".format(uri))
+        exit()
 
         # uri = 'sqlite:/home/lectral/db3.sqlite'
         MySQLConnection = mysql.builder()
